@@ -12,7 +12,7 @@ tileset:
   description: "OpenMapTiles Tileset."
   attribution: 'OpenMapTiles'
   center: [38.75, 9.03, 10]
-  bounds: [38.65, 8.95, 38.85, 9.15]
+  bounds: [38.525440,8.803691,38.987552,9.207208]
   maxzoom: 18
   minzoom: 10
   pixel_scale: 256
