@@ -3,77 +3,64 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-OSRM_DIR="$HOME/osrm"
-EXTRACT_FILENAME="addis-ababa.osm.pbf"
+# === Config ===
+OSM_URL="https://download.geofabrik.de/africa/ethiopia-latest.osm.pbf"
+DATA_DIR="data"
+OSM_FILENAME="$DATA_DIR/$(basename "$OSM_URL")"     # data/ethiopia-latest.osm.pbf
+EXTRACT_FILENAME="$DATA_DIR/addis-ababa.osm.pbf"
 BBOX="38.65,8.95,38.85,9.15"
-BASE="addis-ababa"
-OSRM_BASE="${BASE}.osrm"
-OSRM_IMAGE="osrm/osrm-backend:latest"
+AREA="addis-ababa"
+MBTILES_FILE="$AREA.mbtiles"
 
-# Ensure the extract exists
-if [ ! -f "$EXTRACT_FILENAME" ]; then
-  echo "❌ Missing $EXTRACT_FILENAME. Please extract it first with:"
-  echo "    osmium extract -b $BBOX -o $EXTRACT_FILENAME ethiopia-latest.osm.pbf"
-  exit 1
-fi
-
-# Use area from CLI or fallback
-if [ $# -eq 0 ]; then
-  export area=addis-ababa
-else
-  export area=$1
-fi
-
-echo "Using Addis Ababa OSM extract: $EXTRACT_FILENAME"
-echo "Area: $area"
-
-# Optional: skip Docker image refresh, data downloads, and use local files
-echo "Skipping image pulls and full planet/country downloads for bbox usage"
-
-# Generate MBTiles setup
-MBTILES_FILE="addis-ababa.mbtiles"
 export MBTILES_FILE
 
-echo " "
-echo "====> : Remove old MBTiles file if exists ( ./data/$MBTILES_FILE ) "
-rm -f "./data/$MBTILES_FILE"
+# === Ensure data directory exists ===
+mkdir -p "$DATA_DIR"
 
-echo " "
-echo "====> : Clean previous build"
+# === Download Ethiopia PBF if needed ===
+if [ ! -f "$OSM_FILENAME" ]; then
+  echo "📥 Downloading Ethiopia PBF to $OSM_FILENAME..."
+  curl -L -o "$OSM_FILENAME" "$OSM_URL"
+else
+  echo "✅ Ethiopia PBF exists: $OSM_FILENAME"
+fi
+
+# === Extract Addis Ababa if not already ===
+if [ ! -f "$EXTRACT_FILENAME" ]; then
+  echo "🔍 Extracting Addis Ababa bbox to $EXTRACT_FILENAME"
+  osmium extract -b "$BBOX" -o "$EXTRACT_FILENAME" "$OSM_FILENAME"
+else
+  echo "✅ Addis Ababa extract already exists: $EXTRACT_FILENAME"
+fi
+
+# === OpenMapTiles build steps ===
+echo "🧹 Cleaning previous build"
 make clean
 
-echo " "
-echo "====> : Initialize directories"
+echo "📁 Initializing directories"
 make init-dirs
 
-echo " "
-echo "====> : Generate SQL, mappings, etc."
+echo "⚙️ Generating config and SQL"
 make all
 
-echo " "
-echo "====> : Start PostgreSQL (empty DB)"
+echo "🐘 Starting PostgreSQL"
 make start-db
 make import-data
 
-echo " "
-echo "====> : Import OSM PBF into PostGIS (Addis Ababa)"
+echo "🗺️ Importing Addis Ababa PBF"
 make import-osm EXTRA_IMPORT_ARGS="--read-pbf $EXTRACT_FILENAME"
 
-echo " "
-echo "====> : Import Wikidata"
+echo "📚 Importing Wikidata"
 make import-wikidata
 
-echo " "
-echo "====> : Import SQL"
+echo "🧠 Running SQL post-processing"
 make import-sql
 
-echo " "
-echo "====> : Analyze DB"
+echo "📊 Analyzing DB"
 make analyze-db
 
-echo " "
-echo "====> : Generate Tiles"
+echo "🧱 Generating vector tiles (MBTiles)"
+rm -f "./data/$MBTILES_FILE"
 make generate-tiles-pg
 
-echo " "
-echo "====> : Done! MBTiles ready: ./data/$MBTILES_FILE"
+echo "✅ Done! Vector tiles saved to ./data/$MBTILES_FILE"
