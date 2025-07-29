@@ -82,7 +82,7 @@ Please use Linux `/home/user/` directory, not Windows e.g. `/mnt/c` directory.
 Build the tileset.
 
 ```bash
-git clone https://github.com/openmaptiles/openmaptiles.git
+git clone https://github.com/icotd/openmaptiles.git
 cd openmaptiles
 # Build the imposm mapping, the tm2source project and collect all SQL scripts
 make
