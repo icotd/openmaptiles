@@ -8,7 +8,7 @@ OSM_URL="https://download.geofabrik.de/africa/ethiopia-latest.osm.pbf"
 DATA_DIR="data"
 OSM_FILENAME="$DATA_DIR/$(basename "$OSM_URL")"     # data/ethiopia-latest.osm.pbf
 EXTRACT_FILENAME="$DATA_DIR/addis-ababa.osm.pbf"
-BBOX="38.65,8.95,38.85,9.15"
+BBOX="38.525440,8.803691,38.987552,9.207208"
 AREA="addis-ababa"
 MBTILES_FILE="$AREA.mbtiles"
 
